@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <!--[if IE]>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <![endif]-->
+    <title>ASYNCIO RETHINKDB CHAT EXAMPLE</title>
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <!-- BOOTSTRAP CORE STYLE CSS -->
+
+</head>
+<body style="font-family:Verdana">
+  <div class="container">
+<div class="row " style="padding-top:40px;">
+
+    <h3 class="text-center" >ASYNCIO / RETHINKDB CHAT EXAMPLE</h3>
+    <br /><br />
+    <div class="col-md-4 col-md-offset-4 input-group">
+        <input type="text" class="form-control username" placeholder="Save your name" />
+        <span class="input-group-btn">
+        <button class="btn btn-info save_username" type="button">SAVE</button>
+        </span>
+    </div>
+    <br>
+    <div class="col-md-8 col-md-offset-2">
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                RECENT CHAT HISTORY
+            </div>
+            <div class="panel-body">
+<ul class="media-list">
+
+
+</ul>
+            </div>
+            <div class="panel-footer">
+                <div class="input-group">
+                    <input type="text" class="message form-control" placeholder="Enter Message" />
+                    <span class="input-group-btn">
+                        <button class="btn btn-info send_message" type="button">SEND</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+      <script>
+  $(function(){
+
+      var username = null;
+
+      $('.send_message').on("click", function(event){
+        if (!username){
+            alert("Please first add username!")
+            return
+        }
+        data = {username: username, message: $('.message').val()};
+        $.ajax({
+          type: "POST",
+          url: '/messages',
+          data: JSON.stringify(data),
+          success: function(){console.log('hede')},
+          dataType: "application/json"
+        });
+      })
+
+
+     function add_message(body, user, time){
+          _.templateSettings = {
+          interpolate: /\<\<(.+?)\>\>/g
+        };
+
+          var template = _.template('<li class="media">' +
+                  '<div class="media-body">' +
+                  '<div class="media">' +
+                  '<div class="media-body" > << body >> <br />' +
+                  '<small class="text-muted"><< user>>  | << time >> </small> <hr />' +
+                  ' </div> </div> </div> </li>');
+
+          $(".media-list").append(template({
+              body: body,
+              user: user,
+              time: time
+          })
+         );
+      }
+
+      $('.save_username').on("click", function(event){
+          if ($(".username").val().length > 0) {
+              username = $(".username").val()
+              $('.save_username').remove()
+          }
+      });
+
+      var websocket = new WebSocket("ws://localhost:5000/echo");
+      websocket.onopen = function() {
+          $.get("http://localhost:5000/messages", function(messages){
+            messages = JSON.parse(messages)
+              _.forEach(messages, function(i){add_message(i.message, i.username, i.time)})
+
+          });
+      };
+      websocket.onmessage = function (event) {
+        data = JSON.parse(event.data);
+        add_message(data.message, data.username, data.time)
+      }
+
+  });
+
+
+</script>
+</body>
+</html>
